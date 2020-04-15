@@ -67,6 +67,8 @@ all of them for you.
 The solution is, however, not all-encompassing: you only enable it where you see fit.
 It's implemented as a load option, like this:
 
+    from nplus1loader import nplus1loader
+
     users = ssn.query(User).options(
         load_only('id'),  # worst case scenario
         nplus1loader('*')  # include every column and every relationship
@@ -79,9 +81,11 @@ So now, you can safely iterate through them.
 Warning: do not rely on this mechanism; only use it as a safeguard for production.
 It is recommended that you do something like this instead:
 
+    from nplus1loader import default_columns, raiseload_all, nplus1loader
+
     users = ssn.query(User).options(
         default_columns(User),
-        raiseload('*') if in_testing else nplus1loader('*')
+        raiseload_all('*') if in_testing else nplus1loader('*')
     )
 
 Make sure you import the module first in order for those options to get registered :)
@@ -166,13 +170,57 @@ or you can opt to handle only columns:
     nplus1loader_cols('*')
     nplus1loader_cols(column_name, ...)
 
-`default_columns()`
--------------------
+`default_columns(Model)`
+------------------------
 
 This loader option takes the default defer()/undefer() settings from a model and sets them on a Query.
 In itself, this option is useless, but it enables you to alter the defaults by using other loading options.
 
 In particular, `nplus1loader('*')` won't work unless you provide `default_columns()` first.
+
+
+`raiseload_all('*')`
+--------------------
+
+Raiseload for both columns and relationships.
+
+Example:
+
+    ssn.query(User).options(
+        default_columns('id'),
+        # Raise an error if any attribute at all is lazy-loaded
+        raiseload_all('*')
+    )
+
+The error that it throws is `nplus1loader.LazyLoadingAttributeError()`, so it's easy to catch in your code ;)
+
+
+`raiseload_col(*columns)`
+-------------------------
+
+Raiseload for columns. Use to fine-tune.
+
+Example:
+
+    ssn.query(User).options(
+        load_only('id'),
+        # Raise an error if any other column is lazy-loaded
+        raiseload_col('*')
+    )
+
+You can also specify individual columns as a list.
+
+The error that it throws is `nplus1loader.LazyLoadingAttributeError()`.
+
+
+`raiseload_rel(*relations)`
+---------------------------
+
+Raiseload for relatioships. Use to fine-tune.
+
+It's essentially the same as `sqlalchemy.orm.raiseload()`, but throws the `nplus1loader.LazyLoadingAttributeError()`
+error instead.
+
 
 `bulk_load_attribute_for_instance_states()`
 -------------------------------------------
@@ -184,7 +232,11 @@ augments all the existing instances with the loaded value of this attribute.
 
 # Loader options
 from .loadopt import default_columns
+from .loadopt import raiseload_col, raiseload_rel, raiseload_all
 from .loadopt import nplus1loader, nplus1loader_cols, nplus1loader_rels
+
+# Exceptions
+from .exc import LazyLoadingAttributeError
 
 # Low-level feature
 from .bulk_load import bulk_load_attribute_for_instance_states

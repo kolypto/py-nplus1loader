@@ -18,6 +18,7 @@ except ImportError:
     # In sqlalchemy<=1.3.12 it's called an `Entity Registry`
     from sqlalchemy.orm.path_registry import EntityRegistry as AbstractEntityRegistry
 
+from .exc import LazyLoadingAttributeError
 from .bulk_load import bulk_load_attribute_for_instance_states
 
 
@@ -101,3 +102,30 @@ class NPlusOneLazyColumnLoader(LoaderStrategy):
                 # 2. Have this attribute unloaded
                 if state.persistent and attr_name in state.unloaded:
                     yield state
+
+
+# Raise loader
+
+@ColumnProperty.strategy_for(raiseload_col=True)
+@RelationshipProperty.strategy_for(lazy="raiseload_rel")
+class RaiseLoader(LoaderStrategy):
+    """ Raise Lazy loader """
+
+    def create_row_processor(self, context: QueryContext, path: AbstractEntityRegistry, loadopt: Load, mapper: Mapper,
+                             result: ResultProxy, adapter, populators: Mapping[str, list]):
+        set_lazy_callable = (
+            InstanceState._instance_level_callable_processor
+        )(mapper.class_manager, self._raise_lazy_loading, self.key)
+
+        populators["new"].append((self.key, set_lazy_callable))
+
+    def _raise_lazy_loading(self, state: InstanceState, passive='NOT USED'):
+        """ Handle the lazy-loading for an attribute on a particular instance
+
+        Args:
+            state: The instance whose attribute is being lazy loaded
+        """
+        raise LazyLoadingAttributeError(
+            model_name=self.parent.class_.__name__,
+            attribute_name=self.key,
+        )

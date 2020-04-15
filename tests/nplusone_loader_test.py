@@ -2,6 +2,7 @@ import unittest
 from typing import List
 
 from sqlalchemy import inspect
+from sqlalchemy import exc as sa_exc
 from sqlalchemy.orm import Session, load_only
 from sqlalchemy.orm.state import InstanceState, AttributeState
 
@@ -9,7 +10,7 @@ from .db import init_database, drop_all, create_all
 from .models import Base, Number, Fruit
 from .query_logger import QueryLogger
 
-from nplus1loader import nplus1loader, default_columns
+from nplus1loader import nplus1loader, default_columns, raiseload_all, LazyLoadingAttributeError
 
 
 class NPlusOneLoaderPostgresTest(unittest.TestCase):
@@ -332,6 +333,29 @@ class NPlusOneLoaderPostgresTest(unittest.TestCase):
 
         ssn = self.Session()
         self._run_main(main, ssn)
+
+    def test_raiseload(self):
+        """ Test raiseload """
+        ssn = self.Session()
+
+        # Load
+        one, two, three, four = ssn.query(Number).options(
+            load_only('id'),
+            raiseload_all('*')
+        ).all()
+
+        # Check raises column
+        with self.assertRaises(LazyLoadingAttributeError):
+            one.en
+
+        # Check raises column again
+        with self.assertRaises(LazyLoadingAttributeError):
+            one.en
+
+        # Check raises relationship
+        with self.assertRaises(LazyLoadingAttributeError):
+            one.fruits
+
 
     # Helpers
 
