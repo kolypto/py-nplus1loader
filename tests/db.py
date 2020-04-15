@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 def init_database(autoflush=True) -> Tuple[Engine, sessionmaker]:
     """ Init database """
-    engine = create_engine('postgresql://postgres:postgres@localhost/test_nplusoneloader', convert_unicode=True, echo=False)
+    engine = create_engine('postgresql://postgres:postgres@localhost/test_nplus1loader', convert_unicode=True, echo=False)
     Session = sessionmaker(autocommit=autoflush, autoflush=autoflush, bind=engine)
     return engine, Session
 

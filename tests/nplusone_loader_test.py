@@ -9,7 +9,7 @@ from .db import init_database, drop_all, create_all
 from .models import Base, Number, Fruit
 from .query_logger import QueryLogger
 
-from nplusoneloader import nplus1loader, default_columns
+from nplus1loader import nplus1loader, default_columns
 
 
 class NPlusOneLoaderModelTest(unittest.TestCase):

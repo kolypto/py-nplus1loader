@@ -44,19 +44,19 @@ class NPlusOneLazyColumnLoader(LoaderStrategy):
         # It's going to be called when the attribute is deferred, and touched by some-unsuspecting-body
 
         # Adapted from sqlalchemy.orm.strategies.LazyLoader.create_row_processor
-        # The end result of all this magic is to have our `self._nplusone_lazy_loading` callable
+        # The end result of all this magic is to have our `self._nplus1_lazy_loading` callable
         # inserted into InstanceState.callables[self.key]
         # This will ensure it'll get called when the attribute is lazy loaded
         set_lazy_callable = (
             InstanceState._instance_level_callable_processor
-        )(mapper.class_manager, self._nplusone_lazy_loading, self.key)
+        )(mapper.class_manager, self._nplus1_lazy_loading, self.key)
 
         # I'm not certain that "new" is the right key. Other options:
         # "new", "expired", "quick", "delayed", "existing", "eager"
         # Seems like all these are scenarios under which an attribute may be accessed
         populators["new"].append((self.key, set_lazy_callable))
 
-    def _nplusone_lazy_loading(self, state: InstanceState, passive='NOT USED'):
+    def _nplus1_lazy_loading(self, state: InstanceState, passive='NOT USED'):
         """ Handle the lazy-loading for an attribute on a particular instance
 
         Args:

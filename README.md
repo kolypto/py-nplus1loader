@@ -3,6 +3,39 @@
 
 An SqlAlchemy loader that solves the N+1 problem
 
+TL;DR
+=====
+
+What happens if you touch an unloaded column or relationship while looping over results from the DB?
+
+```python
+users = ssn.query(User).all()
+
+for user in users:
+    user.articles  # load a relationship
+```
+
+Right. If you have 1000 users, you'll end up with 1000 queries.
+
+Here's a simple solution for you that will lazy-load an attribute for all those users with just one query:
+
+```python
+from nplus1loader import default_columns, nplus1loader
+
+users = ssn.query(User).options(
+    default_columns(User),
+    nplus1loader('*')
+).all()
+
+for user in users:
+    user.articles
+```
+
+It will only make 1 query to load all the users, then when it sees that you want articles,
+it will only make 1 additional query to load all articles¹ for those users.
+
+¹: it will actually make 1 query per 500 users.
+
 The N+1 Problem
 ===============
 
@@ -56,7 +89,7 @@ It is recommended that you do something like this instead:
 
 Make sure you import the module first in order for those options to get registered :)
 
-    import nplusoneloader
+    import nplus1loader
 
 One minor inconvenience
 =======================
@@ -88,10 +121,15 @@ which have other preferences about being loaded.
 Logging
 =======
 
-All logging is done to the 'lib.db.nplusone_loader.NPlusOneLazyColumnLoader' logger:
+All logging is done to the 'lib.db.nplus1loader.NPlusOneLazyColumnLoader' logger:
 
-    05:09:37 [W] lib.db.nplusone_loader.NPlusOneLazyColumnLoader: Number.es: N+1 loading of 4 instances
-    emitted by: _nplusone_lazy_loading() nplusoneloader/strategies.py:76
+    05:09:37 [W] nplus1loader.NPlusOneLazyColumnLoader: Number.es: N+1 loading of 4 instances
+    emitted by: _nplusone_lazy_loading() nplus1loader/strategies.py:76
+
+Other Tools
+===========
+
+The `nplus1loader()`
 
 Other solutions
 ===============

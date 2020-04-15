@@ -2,12 +2,12 @@ import json
 from exdoc import doc
 
 # Data
-import nplusoneloader
+import nplus1loader
 
 data = dict(
-    module=doc(nplusoneloader),
+    module=doc(nplus1loader),
     # load_options = [
-    #     doc(nplusoneloader.)
+    #     doc(nplus1loader.)
     # ]
 )
 

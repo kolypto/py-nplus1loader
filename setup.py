@@ -4,12 +4,12 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='nplusoneloader',
+    name='nplus1loader',
     version='1.0.0',
     author='Mark Vartanyan',
     author_email='kolypto@gmail.com',
 
-    url='https://github.com/kolypto/py-nplusone-loader',
+    url='https://github.com/kolypto/py-nplus1loader',
     license='BSD',
     description=__doc__,
     long_description=open('README.md').read(),

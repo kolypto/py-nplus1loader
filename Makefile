@@ -6,7 +6,7 @@ SHELL := /bin/bash
 .PHONY: clean
 clean:
 	@rm -rf build/ dist/ *.egg-info/
-README.md: $(shell find nplusoneloader/) $(wildcard misc/_doc/**)
+README.md: $(shell find nplus1loader/) $(wildcard misc/_doc/**)
 	@python misc/_doc/README.py | j2 --format=json -o README.md misc/_doc/README.md.j2
 
 .PHONY: build publish-test publish

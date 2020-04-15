@@ -6,7 +6,7 @@ addons:
   postgresql: "9.6"
 
 before_script:
-  - psql -c 'CREATE DATABASE test_nplusoneloader OWNER=postgres;' -U postgres
+  - psql -c 'CREATE DATABASE test_nplus1loader OWNER=postgres;' -U postgres
 
 matrix:
   include:
