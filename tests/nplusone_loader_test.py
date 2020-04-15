@@ -87,9 +87,9 @@ class NPlusOneLoaderModelTest(unittest.TestCase):
                 self.assertLoaded('en', four)
 
                 # Freely access the `en` attribute on other objects: no additional queries
-                one.en
-                two.en
-                three.en
+                self.assertEqual(one.en, 'one')
+                self.assertEqual(two.en, 'two')
+                self.assertEqual(three.en, 'three')
                 self.assertMadeQueries(0)  # no additional queries
 
                 # Make sure 'es' is unloaded
@@ -107,9 +107,9 @@ class NPlusOneLoaderModelTest(unittest.TestCase):
                 self.assertLoaded('es', four)
 
                 # Freely access the `es` attribute
-                one.es
-                two.es
-                three.es
+                self.assertEqual(one.es, 'uno')
+                self.assertEqual(two.es, 'dos')
+                self.assertEqual(three.es, 'tres')
                 self.assertMadeQueries(0)  # no additional queries
 
             # ### Test: lazy load does not overwrite a changed value
@@ -161,21 +161,21 @@ class NPlusOneLoaderModelTest(unittest.TestCase):
                 ssn.expire(three)
 
                 # Access a loaded attr: no additional queries
-                four.en
+                self.assertEqual(four.en, 'four')
                 self.assertMadeQueries(0)
 
                 # Touch an expired attribute
-                one.en
+                self.assertEqual(one.en, 'one')
                 self.assertMadeQueries(1)  # loaded
 
                 # Touch another expired attribute
-                one.es
+                self.assertEqual(one.es, 'uno')
                 self.assertMadeQueries(0)  # all refreshed
 
                 # Freely touch attributes on other expired
-                one.en
-                two.en
-                three.en
+                self.assertEqual(one.en, 'one')
+                self.assertEqual(two.en, 'two')
+                self.assertEqual(three.en, 'three')
                 self.assertMadeQueries(2)  # loading for every expired item
 
             # ### Test: manual refresh
@@ -191,8 +191,7 @@ class NPlusOneLoaderModelTest(unittest.TestCase):
                 self.assertMadeQueries(1)  # refreshed
 
                 # Make sure others are still unloaded
-                one_state = inspect(one)
-                self.assertIn('en', one_state.unloaded)
+                self.assertUnloaded('en', one)
 
 
             # ### Test: N+1 loading when there are no more instances
@@ -210,7 +209,9 @@ class NPlusOneLoaderModelTest(unittest.TestCase):
                 one.en
                 self.assertMadeQueries(1)
 
-                # No error
+                # Actually loaded
+                self.assertLoaded('en', one)
+                self.assertEqual(one.en, 'one')
 
 
         def load_numbers(*options) -> List[Number]:
@@ -225,8 +226,8 @@ class NPlusOneLoaderModelTest(unittest.TestCase):
         ssn = self.Session()
         self._run_main(main, ssn)
 
-    def test_lazyload_scalar_relationship(self):
-        """ Test the case where a scalar relationship is going to be lazy loaded """
+    def test_lazyload_list_relationship(self):
+        """ Test the case where a list relationship is going to be lazy loaded """
         def main(ssn: Session, query_logger: QueryLogger, reset: callable):
             # ### Test: load a relationship without the solution
             reset()
@@ -264,9 +265,14 @@ class NPlusOneLoaderModelTest(unittest.TestCase):
                 self.assertLoaded('fruits', four)
 
                 # Freely access the `fruits` attribute on other objects: no additional queries
-                one.fruits
-                two.fruits
-                three.fruits
+                self.assertIsInstance(one.fruits, list)
+                self.assertIsInstance(two.fruits, list)
+                self.assertIsInstance(three.fruits, list)
+                self.assertIsInstance(four.fruits, list)
+                self.assertEqual(len(one.fruits), 2)
+                self.assertEqual(len(two.fruits), 2)
+                self.assertEqual(len(three.fruits), 2)
+                self.assertEqual(len(four.fruits), 0)
                 self.assertMadeQueries(0)  # no additional queries
 
         def load_numbers(*options) -> List[Number]:
@@ -275,8 +281,8 @@ class NPlusOneLoaderModelTest(unittest.TestCase):
         ssn = self.Session()
         self._run_main(main, ssn)
 
-    def test_lazyload_list_relationship(self):
-        """ Test the case where a list relationship is going to be lazy loaded """
+    def test_lazyload_scalar_relationship(self):
+        """ Test the case where a scalar relationship is going to be lazy loaded """
 
         def main(ssn: Session, query_logger: QueryLogger, reset: callable):
             # ### Test: load a relationship
@@ -310,12 +316,13 @@ class NPlusOneLoaderModelTest(unittest.TestCase):
                 self.assertLoaded('number', tomato)
 
                 # Freely access the `fruits` attribute on other objects: no additional queries
-                orange.number
-                grape.number
-                plum.number
-                cherry.number
-                strawberry.number
-                tomato.number
+                self.assertEqual(apple.number.en, 'one')
+                self.assertEqual(orange.number.en, 'one')
+                self.assertEqual(grape.number.en, 'two')
+                self.assertEqual(plum.number.en, 'two')
+                self.assertEqual(cherry.number.en, 'three')
+                self.assertEqual(strawberry.number.en, 'three')
+                self.assertEqual(tomato.number, None)
                 self.assertMadeQueries(0)  # no additional queries
 
         def load_fruits(*options) -> List[Fruit]:

@@ -84,6 +84,12 @@ class NPlusOneLazyColumnLoader(LoaderStrategy):
         # This function handles both attributes and relationships
         bulk_load_attribute_for_instance_states(session, mapper, states, self.key)
 
+        # Finally, return the new value of the attribute.
+        # bulk loader has already set it, actually... but the row processor contract requires that we return it.
+
+        # This monstrous thing is the right way to get the "committed value" from an sqlalchemy instance :)
+        return state.get_impl(self.key).get_committed_value(state, state.dict)
+
     @staticmethod
     def _get_instance_states_with_unloaded(session: Session, mapper: Mapper, attr_name: str) -> Iterable[InstanceState]:
         """ Iterate over instances in the `session` which have `attr_name` unloaded """
