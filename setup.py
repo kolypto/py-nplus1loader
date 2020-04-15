@@ -23,6 +23,7 @@ setup(
     python_requires='>= 3.6',
     install_requires=[
         'sqlalchemy >= 1.3.0',
+        'funcy',
     ],
     extras_require={},
     include_package_data=True,
