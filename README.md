@@ -126,11 +126,6 @@ All logging is done to the 'lib.db.nplus1loader.NPlusOneLazyColumnLoader' logger
     05:09:37 [W] nplus1loader.NPlusOneLazyColumnLoader: Number.es: N+1 loading of 4 instances
     emitted by: _nplusone_lazy_loading() nplus1loader/strategies.py:76
 
-Other Tools
-===========
-
-The `nplus1loader()`
-
 Other solutions
 ===============
 
@@ -150,3 +145,38 @@ Currently, only works with PostgreSQL.
 
 There should be no problem to ensure its operation for other databases, because the only place where
 it depends on Postgres is the `bulk_load.py`, where it uses tuples to make very optimal IN queries.
+
+
+Other Tools
+===========
+
+Handle specific attributes
+--------------------------
+
+The `nplus1loader` package has other tools that you might find useful.
+
+First of all, you can be more specific about which attributes you want to have handled by the N+1 loader.
+You can opt to handle only relationships, all, or specific ones:
+
+    nplus1loader_rels('*')
+    nplus1loader_rels(relationshop_name, ...)
+
+or you can opt to handle only columns:
+
+    nplus1loader_cols('*')
+    nplus1loader_cols(column_name, ...)
+
+`default_columns()`
+-------------------
+
+This loader option takes the default defer()/undefer() settings from a model and sets them on a Query.
+In itself, this option is useless, but it enables you to alter the defaults by using other loading options.
+
+In particular, `nplus1loader('*')` won't work unless you provide `default_columns()` first.
+
+`bulk_load_attribute_for_instance_states()`
+-------------------------------------------
+
+This is the heart of N+1 loader. You give it a list of instances, name one unlaoded attribute,
+and it makes just one query to load this attribute's value from the database, and efficiently
+augments all the existing instances with the loaded value of this attribute.
