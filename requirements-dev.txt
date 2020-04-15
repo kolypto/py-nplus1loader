@@ -1,0 +1,5 @@
+wheel
+nose
+psycopg2-binary
+exdoc
+j2cli
