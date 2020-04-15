@@ -1,0 +1,49 @@
+# ===[ APP ]=== #
+
+# ===[ PYTHON PACKAGE ]=== #
+/.tox/
+/build/
+/dist/
+/MANIFEST
+/*.egg-info/
+/*.egg/
+
+# ===[ OTHER ]=== #
+
+# IDE Projects
+.idea
+.nbproject
+.project
+*.sublime-project
+
+# Env
+/.python-version
+
+# Temps
+*~
+*.tmp
+*.bak
+*.swp
+*.kate-swp
+*.DS_Store
+Thumbs.db
+
+# Utils
+.sass-cache/
+.coverage
+/.noseids
+/profile.*
+
+# Generated
+__pycache__
+*.py[cod]
+*.pot
+*.mo
+
+# Runtime
+/*.log
+/*.pid
+
+# ===[ EXCLUDES ]=== #
+!.gitkeep
+!.htaccess
