@@ -1,31 +1,30 @@
-import re
-import sys
-
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Query
-from sqlalchemy.dialects import postgresql as pg
 
-PY2 = sys.version_info[0] == 2
-
-
-def _insert_query_params(statement_str, parameters, dialect):
-    """ Compile a statement by inserting *unquoted* parameters into the query """
-    return statement_str % parameters
+try:
+    import sqlparse
+except ImportError:
+    sqlparse = None
 
 
-def stmt2sql(stmt):
-    """ Convert an SqlAlchemy statement into a string """
-    # See: http://stackoverflow.com/a/4617623/134904
-    # This intentionally does not escape values!
-    dialect = pg.dialect()
-    query = stmt.compile(dialect=dialect)
-    return _insert_query_params(query.string, query.params, pg.dialect())
+def format_sql_statement(cursor, statement, parameters):
+    """ Format an SqlAlchemy statement into a valid SQL string """
+    if isinstance(parameters, dict):
+        # This line produces correct but ugly SQL
+        sql = cursor.mogrify(statement, parameters)#.decode()
 
-
-def q2sql(q):
-    """ Convert an SqlAlchemy query to string """
-    return stmt2sql(q.statement)
+        # Nicely format SQL (takes a lot of CPU)
+        if sqlparse is not None:
+            return sqlparse.format(sql, reindent=True)
+        else:
+            return str(sql)
+    elif isinstance(parameters, tuple):
+        return '\n'.join(format_sql_statement(cursor, statement, p)
+                         for p in parameters)
+    elif isinstance(parameters, (int, str, float)):
+        return statement + str(parameters)  # ugly but true
+    else:
+        raise TypeError(type(parameters))
 
 
 class QueryLogger(list):
@@ -43,8 +42,10 @@ class QueryLogger(list):
     def stop_logging(self):
         event.remove(self.engine, "after_cursor_execute", self._after_cursor_execute_event_handler)
 
-    def _after_cursor_execute_event_handler(self, **kw):
-        self.append(_insert_query_params(kw['statement'], kw['parameters'], kw['context']))
+    def _after_cursor_execute_event_handler(self, conn, cursor, statement, parameters, **kw):
+        self.append(
+            format_sql_statement(cursor, statement, parameters)
+        )
 
     def print_log(self):
         for i, q in enumerate(self):

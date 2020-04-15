@@ -12,11 +12,13 @@ from .query_logger import QueryLogger
 from nplus1loader import nplus1loader, default_columns
 
 
-class NPlusOneLoaderModelTest(unittest.TestCase):
+class NPlusOneLoaderPostgresTest(unittest.TestCase):
+    DB_URL = 'postgresql://postgres:postgres@localhost/test_nplus1loader'
+
     def setUp(self):
         super().setUp()
 
-        self.engine, self.Session = init_database()
+        self.engine, self.Session = init_database(url=self.DB_URL)
         drop_all(self.engine, Base)
         create_all(self.engine, Base)
 
@@ -366,4 +368,14 @@ class NPlusOneLoaderModelTest(unittest.TestCase):
             query_logger.clear()
 
         main(ssn, query_logger, reset)
+
+
+class NplusOneLoaderMySQLTest(NPlusOneLoaderPostgresTest):
+    """ Test nplus1loader() with MySQL """
+    DB_URL = 'mysql+pymysql://mysql:mysql@localhost/test_nplus1loader'
+
+
+class NplusOneLoaderSQLiteTest(NPlusOneLoaderPostgresTest):
+    """ Test nplus1loader() with SQLite """
+    DB_URL = 'sqlite://'
 

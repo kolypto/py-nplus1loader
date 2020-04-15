@@ -135,17 +135,20 @@ Other solutions
 Both projects served as a source of inspiration.
 
 
-Limitations
-===========
 
-Currently, only works with PostgreSQL.
+Database support
+================
 
-There should be no problem to ensure its operation for other databases, because the only place where
-it depends on Postgres is the `bulk_load.py`, where it uses tuples to make very optimal IN queries.
+Tested with:
+
+* PostgreSQL
+* MySQL
+* SQLite
 
 
-Other Tools
-===========
+
+Other Included Tools
+====================
 
 Handle specific attributes
 --------------------------

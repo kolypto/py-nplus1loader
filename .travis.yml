@@ -4,9 +4,13 @@ language: python
 
 addons:
   postgresql: "9.6"
+  mariadb: '10.5'
 
 before_script:
   - psql -c 'CREATE DATABASE test_nplus1loader OWNER=postgres;' -U postgres
+  - mysql -u root -e 'CREATE DATABASE test_nplus1loader;'
+  - mysql -u root -e "CREATE USER 'mysql'@'localhost' IDENTIFIED BY 'mysql';"
+  - mysql -u root -e "GRANT ALL ON test_nplus1loader.* TO 'mysql'@'localhost';"
 
 matrix:
   include:

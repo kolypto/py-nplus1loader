@@ -12,9 +12,9 @@ class Number(Base):
 
     id = Column(Integer, primary_key=True, nullable=False)
 
-    en = Column(String, nullable=True)
-    es = Column(String, nullable=True)
-    no = Column(String, nullable=True)
+    en = Column(String(100), nullable=True)
+    es = Column(String(100), nullable=True)
+    no = Column(String(100), nullable=True)
 
     fruits = relationship(lambda: Fruit, back_populates='number')
 
@@ -26,8 +26,8 @@ class Fruit(Base):
     id = Column(Integer, primary_key=True, nullable=False)
     number_id = Column(Number.id.type, ForeignKey(Number.id), nullable=True)
 
-    en = Column(String, nullable=True)
-    es = Column(String, nullable=True)
-    no = Column(String, nullable=True)
+    en = Column(String(100), nullable=True)
+    es = Column(String(100), nullable=True)
+    no = Column(String(100), nullable=True)
 
     number = relationship(lambda: Number, back_populates='fruits')
