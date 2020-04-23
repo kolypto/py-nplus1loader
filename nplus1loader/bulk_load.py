@@ -1,6 +1,6 @@
 """ Bulk load an attribute for multiple instances at once """
 
-from typing import Tuple, Iterable
+from typing import Tuple, Iterable, Callable, Optional
 
 from funcy import chunks
 from sqlalchemy import Column, tuple_
@@ -11,10 +11,18 @@ from sqlalchemy.orm.state import InstanceState
 from sqlalchemy.orm import Mapper, Session, Query, defaultload, joinedload
 
 
+# Signature of a function that may alter the Query
+# (query: Query, mapper: Mapper, attr_name: str, is_relationship: bool)
+QueryAlterator = Callable[[Query, Mapper, str, bool], Query]
+
+
 # These functions implement bulk lazy loading
 # In other words: given a list of instances, it can load one particular attribute's value on all of them.
 
-def bulk_load_attribute_for_instance_states(session: Session, mapper: Mapper, states: Iterable[InstanceState], attr_name: str):
+def bulk_load_attribute_for_instance_states(session: Session, mapper: Mapper,
+                                            states: Iterable[InstanceState], attr_name: str,
+                                            alter_query: Optional[QueryAlterator],
+                                            ):
     """ Given a list of partially-loaded instances, augment them with an attribute `attr_name` by loading it from the DB
 
     It will augment all instances in chunks, not all at once.
@@ -24,6 +32,7 @@ def bulk_load_attribute_for_instance_states(session: Session, mapper: Mapper, st
         mapper: The Mapper all those instances are handled with
         states: The instances to augment
         attr_name: The attribute to load
+        alter_query: A function to alter the query that loads columns
     """
     # Are we dealing with a column, or with a relationship?
     if attr_name in mapper.columns:
@@ -44,16 +53,22 @@ def bulk_load_attribute_for_instance_states(session: Session, mapper: Mapper, st
             identities = (state.identity for state in states_chunk)
 
             # Now, augment those instances by loading the missing attribute `attr_name` from the database
-            loader_func(session, mapper, identities, attr_name)
+            loader_func(session, mapper, identities, attr_name, alter_query)
 
 
-def _bulk_load_column_for_instance_states(session: Session, mapper: Mapper, identities: Iterable[Tuple], attr_name: str):
+def _bulk_load_column_for_instance_states(session: Session, mapper: Mapper,
+                                          identities: Iterable[Tuple], attr_name: str,
+                                          alter_query: Optional[QueryAlterator]):
     """ Load a column attribute for a list of instance states where the attribute is unloaded """
     Model = mapper.class_
     attr: Column = mapper.columns[attr_name]
 
     # Using those identities (primary keys), load the missing attribute
     q = load_by_primary_keys(session, mapper, identities, attr)
+
+    # Alter the query
+    if alter_query:
+        q = alter_query(q, mapper, attr_name, False)
 
     # Having the missing attribute's value loaded, assign it to every instance in the session
     for identity, attr_value in q:
@@ -71,7 +86,9 @@ def _bulk_load_column_for_instance_states(session: Session, mapper: Mapper, iden
         set_committed_value(instance, attr_name, attr_value)
 
 
-def _bulk_load_relationship_for_instance_states(session: Session, mapper: Mapper, identities: Iterable[Tuple], attr_name: str):
+def _bulk_load_relationship_for_instance_states(session: Session, mapper: Mapper,
+                                                identities: Iterable[Tuple], attr_name: str,
+                                                alter_query: Optional[QueryAlterator]):
     """ Load a relationship attribute for a list of instance states where the attribute is unloaded """
     Model = mapper.class_
     relationship: Column = mapper.all_orm_descriptors[attr_name]
@@ -96,12 +113,19 @@ def _bulk_load_relationship_for_instance_states(session: Session, mapper: Mapper
     # SqlAlchemy adds them to existing instances (!)
     #
     # Magic.
-    session.query(Model).options(
+    q = session.query(Model).options(
         defaultload(Model).load_only(*pk_column_names),
         joinedload(relationship)
     ).filter(
         build_primary_key_condition(pk_columns, identities)
-    ).all()
+    )
+
+    # Alter the query
+    if alter_query:
+        q = alter_query(q, mapper, attr_name, True)
+
+    # Finally, exeucte the query
+    q.all()
 
 
 def load_by_primary_keys(session: Session, mapper: Mapper, identities: Iterable[Tuple], *entities) -> Query:

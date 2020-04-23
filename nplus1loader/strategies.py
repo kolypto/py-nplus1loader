@@ -1,5 +1,5 @@
 """ The implementation of the N+1 Loading strategy """
-
+from functools import partial
 from typing import Iterable, Mapping
 
 from sqlalchemy import log
@@ -7,9 +7,11 @@ from sqlalchemy.engine import ResultProxy
 from sqlalchemy.orm.base import instance_state
 from sqlalchemy.orm.query import QueryContext
 from sqlalchemy.orm.state import InstanceState
-from sqlalchemy.orm import ColumnProperty, RelationshipProperty, Mapper, Session
+from sqlalchemy.orm import ColumnProperty, RelationshipProperty, Mapper, Session, Query, defaultload
 from sqlalchemy.orm.strategy_options import Load
 from sqlalchemy.orm.strategies import LoaderStrategy
+
+from . import loadopt
 
 try:
     # In sqlalchemy>=1.3.13, it's something else
@@ -44,20 +46,25 @@ class NPlusOneLazyColumnLoader(LoaderStrategy):
         # and our callable is `self._nplusone_lazy_loading` method.
         # It's going to be called when the attribute is deferred, and touched by some-unsuspecting-body
 
+        # Get our loader option keyword arguments
+        nested = loadopt.local_opts.get('nplus1:nested', False)
+
         # Adapted from sqlalchemy.orm.strategies.LazyLoader.create_row_processor
         # The end result of all this magic is to have our `self._nplus1_lazy_loading` callable
         # inserted into InstanceState.callables[self.key]
         # This will ensure it'll get called when the attribute is lazy loaded
         set_lazy_callable = (
             InstanceState._instance_level_callable_processor
-        )(mapper.class_manager, self._nplus1_lazy_loading, self.key)
+        )(mapper.class_manager,
+          partial(self._nplus1_lazy_loading, nested=nested),
+          self.key)
 
         # I'm not certain that "new" is the right key. Other options:
         # "new", "expired", "quick", "delayed", "existing", "eager"
         # Seems like all these are scenarios under which an attribute may be accessed
         populators["new"].append((self.key, set_lazy_callable))
 
-    def _nplus1_lazy_loading(self, state: InstanceState, passive='NOT USED'):
+    def _nplus1_lazy_loading(self, state: InstanceState, passive='NOT USED', nested: bool = None):
         """ Handle the lazy-loading for an attribute on a particular instance
 
         Args:
@@ -83,13 +90,31 @@ class NPlusOneLazyColumnLoader(LoaderStrategy):
 
         # Now augment those instances with a bulk lazy-load
         # This function handles both attributes and relationships
-        bulk_load_attribute_for_instance_states(session, mapper, states, self.key)
+        alter_query = self._alter_query__add_nested_nplus1loader if nested else None
+        bulk_load_attribute_for_instance_states(session, mapper, states, self.key, alter_query)
 
         # Finally, return the new value of the attribute.
         # bulk loader has already set it, actually... but the row processor contract requires that we return it.
 
         # This monstrous thing is the right way to get the "committed value" from an sqlalchemy instance :)
         return state.get_impl(self.key).get_committed_value(state, state.dict)
+
+    def _alter_query__add_nested_nplus1loader(self, query: Query, mapper: Mapper, attr_name: str, is_relationship: bool):
+        """ When loading a nested relationship, apply another nplus1loader to it """
+        # Only apply to relationships
+        if is_relationship:
+            Model = self.parent.class_
+            relationship = getattr(Model, attr_name)
+            related_Model = relationship.property.mapper.class_
+
+            return query.options(
+                defaultload(relationship)
+                    .default_columns(related_Model)
+                    .nplus1loader('*'),
+            )
+        # No special options for columns
+        else:
+            return query
 
     @staticmethod
     def _get_instance_states_with_unloaded(session: Session, mapper: Mapper, attr_name: str) -> Iterable[InstanceState]:

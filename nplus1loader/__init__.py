@@ -188,6 +188,32 @@ nplus1loader_cols('*')
 nplus1loader_cols(column_name, ...)
 ```
 
+nplus1loader('*', nested=True)
+------------------------------
+
+You may have noticed that the N+1 loader has the `nested=True` keyword argument.
+It controls which options should be put on those relationships that have been lazy-loaded in bulk.
+
+By default, loader options in SqlAlchemy would only affect your top-level entities.
+For instance:
+
+```python
+query(User).options(
+    default_columns(User)
+        .nplus1loader('*')
+)
+```
+
+would only apply the N+1 loader on the immediate attributes of the `User`, but not to its related models.
+So, if the N+1 loader happens to load User's `Article`s, the attributes of `Article` would use the plain
+SqlAlchemy lazy-loading one by one.
+
+With `nested=True`, the N+1 loader would also put an `nplus1loader('*')` on `Article` when those are loaded.
+
+This `nested=True` is the default, and you don't have to bother about it.
+Moreover, there probably is no sane reason for disabling it, ever. So it's a good candidate for removal.
+
+
 `default_columns(Model)`
 ------------------------
 
@@ -195,6 +221,9 @@ This loader option takes the default `defer()`/`undefer()` settings from a model
 In itself, this option is useless, but it enables you to alter the defaults by using other loading options.
 
 In particular, `nplus1loader('*')` won't work unless you apply `default_columns()` first.
+
+Note that `nplus1loader('*')` can be chained from `default_columns()`, or it can be written after a comma.
+Both will have the same effect.
 
 
 `raiseload_all('*')`

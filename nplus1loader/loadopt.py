@@ -2,8 +2,6 @@
 from sqlalchemy.orm import class_mapper
 from sqlalchemy.orm.strategy_options import loader_option, _UnboundLoad
 
-from . import strategies  # make sure it's registered
-
 
 # Load interface: register some new loading options
 # This means that when you do Load(Model), you can use those functions as methods:
@@ -79,7 +77,7 @@ def raiseload_all(loadopt: _UnboundLoad, *attrs):
 
 
 @loader_option()
-def nplus1loader_cols(loadopt: _UnboundLoad, *attrs):
+def nplus1loader_cols(loadopt: _UnboundLoad, *attrs, nested=True):
     """ N+1 loader for columns
 
     Give it a list of columns, of '*' to handle them all.
@@ -87,11 +85,13 @@ def nplus1loader_cols(loadopt: _UnboundLoad, *attrs):
     loadopt = loadopt.set_column_strategy(
         attrs, {"nplus1": True}
     )
+    if nested:
+        loadopt.local_opts['nplus1:nested'] = True
     return loadopt
 
 
 @loader_option()
-def nplus1loader_rels(loadopt: _UnboundLoad, *attrs):
+def nplus1loader_rels(loadopt: _UnboundLoad, *attrs, nested=True):
     """ N+1 loader for relationships
 
     Give it a list of relationships, of '*' to handle them all.
@@ -100,18 +100,25 @@ def nplus1loader_rels(loadopt: _UnboundLoad, *attrs):
         loadopt = loadopt.set_relationship_strategy(
             attr, {"lazy": "nplus1"}
         )
+        if nested:
+            loadopt.local_opts['nplus1:nested'] = True
     return loadopt
 
 
 @loader_option()
-def nplus1loader(loadopt, attrs):
+def nplus1loader(loadopt, attrs, nested=True):
     """ N+1 loader for attributes, be it a column or a relationship
 
     Give it a list of attributes, of '*' to handle them all.
+
+    Args:
+        attrs: Currently, only supports '*'.
+          See `nplus1loader_cols()` and `nplus1loader_rels()` for fine-tuning.
+        nested: Whether to automatically put the nplus1loader('*') on loaded relationships
     """
     assert tuple(attrs) == ('*',), 'nplus1loader() only supports "*" yet'
-    loadopt = loadopt.nplus1loader_cols('*')
-    loadopt = loadopt.nplus1loader_rels('*')
+    loadopt = loadopt.nplus1loader_cols('*', nested=nested)
+    loadopt = loadopt.nplus1loader_rels('*', nested=nested)
     return loadopt
 
 
@@ -141,18 +148,18 @@ def raiseload_all(*attrs):
 
 
 @nplus1loader_cols._add_unbound_fn
-def nplus1loader_cols(*attrs):
-    return _UnboundLoad().nplus1loader_cols(*attrs)
+def nplus1loader_cols(*attrs, nested=True):
+    return _UnboundLoad().nplus1loader_cols(*attrs, nested=nested)
 
 
 @nplus1loader_rels._add_unbound_fn
-def nplus1loader_rels(*attrs):
-    return _UnboundLoad().nplus1loader_rels(*attrs)
+def nplus1loader_rels(*attrs, nested=True):
+    return _UnboundLoad().nplus1loader_rels(*attrs, nested=nested)
 
 
 @nplus1loader._add_unbound_fn
-def nplus1loader(*attrs):
-    return _UnboundLoad().nplus1loader(*attrs)
+def nplus1loader(*attrs, nested=True):
+    return _UnboundLoad().nplus1loader(*attrs, nested=nested)
 
 
 # The unbound loader options that you're going to import and use
@@ -167,3 +174,6 @@ nplus1loader_cols = nplus1loader_cols._unbound_fn
 nplus1loader_rels = nplus1loader_rels._unbound_fn
 nplus1loader = nplus1loader._unbound_fn
 
+
+
+from . import strategies  # noqa make sure it's registered

@@ -247,8 +247,8 @@ class NPlusOneLoaderPostgresTest(unittest.TestCase):
             reset()
             # one, two, three, four = load_numbers()
             one, two, three, four = load_numbers(
-                default_columns(Number),  # !!!
-                nplus1loader('*')
+                default_columns(Number)  # !!!
+                    .nplus1loader('*')
             )
             ssn.add(Number())  # stumbling block
 
@@ -292,8 +292,8 @@ class NPlusOneLoaderPostgresTest(unittest.TestCase):
             reset()
             # one, two, three, four = load_numbers()
             apple, orange, grape, plum, cherry, strawberry, tomato = load_fruits(
-                default_columns(Number),  # !!!
-                nplus1loader('*')
+                default_columns(Number)  # !!!
+                    .nplus1loader('*')
             )
             ssn.add(Number())  # stumbling block
 
@@ -330,6 +330,50 @@ class NPlusOneLoaderPostgresTest(unittest.TestCase):
 
         def load_fruits(*options) -> List[Fruit]:
             return ssn.query(Fruit).options(*options).order_by(Fruit.id.asc()).all()
+
+        ssn = self.Session()
+        self._run_main(main, ssn)
+
+    def test_lazyload_nested(self):
+        """ Test what happens when a relationship loaded by nplus1loader also triggers a lazyload """
+
+        def main(ssn: Session, query_logger: QueryLogger, reset: callable):
+            with query_logger, ssn.no_autoflush:
+                # ### Test: load a relationship's relationship
+                # In this test we'll observe that nplus1loader('*') only handles top-level relationships
+                # and does not handle second-level relationships
+                fruits = load_fruits(
+                    nplus1loader('*', nested=False)
+                )
+                self.assertMadeQueries(1)  # made 1 query to load them all
+
+                # Now iterate it's first-level attribute
+                iterate_nested_relationship(fruits)
+                self.assertMadeQueries(1 + 3)  # one query to load them all + a query per fruit (where a number is set)
+
+                # ### Test: see how nplus1loader('*') loads second-level relationships
+                reset()
+                fruits = load_fruits(
+                    nplus1loader('*', nested=True)
+                )
+                self.assertMadeQueries(1)  # made 1 query to load them all
+
+                # Now iterate it's first-level attribute
+                iterate_nested_relationship(fruits)
+                self.assertMadeQueries(2)  # one query to load `fruit.number`, one more query to load `fruit.number.fruits`
+
+        def load_fruits(*options) -> List[Fruit]:
+            return ssn.query(Fruit).options(
+                default_columns(Fruit),
+                *options
+            ).all()
+
+        def iterate_nested_relationship(fruits: List[Fruit]):
+            for fruit in fruits:
+                # Touch the 1st level relationship
+                if fruit.number:
+                    # Touch the 2nd level relationship
+                    fruit.number.fruits
 
         ssn = self.Session()
         self._run_main(main, ssn)
