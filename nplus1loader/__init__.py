@@ -294,5 +294,6 @@ from .loadopt import nplus1loader, nplus1loader_cols, nplus1loader_rels
 # Exceptions
 from .exc import LazyLoadingAttributeError
 
-# Low-level feature
+# Low-level features
 from .bulk_load import bulk_load_attribute_for_instance_states
+from .util import query_nplus1loader_others

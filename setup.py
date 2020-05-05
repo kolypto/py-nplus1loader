@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='nplus1loader',
-    version='1.0.1',
+    version='1.0.2b1',
     author='Mark Vartanyan',
     author_email='kolypto@gmail.com',
 
