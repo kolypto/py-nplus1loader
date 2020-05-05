@@ -3,7 +3,7 @@ from typing import List
 
 from sqlalchemy import inspect
 from sqlalchemy import exc as sa_exc
-from sqlalchemy.orm import Session, load_only
+from sqlalchemy.orm import Session, load_only, joinedload
 from sqlalchemy.orm.state import InstanceState, AttributeState
 
 from .db import init_database, drop_all, create_all
@@ -361,6 +361,18 @@ class NPlusOneLoaderPostgresTest(unittest.TestCase):
                 # Now iterate it's first-level attribute
                 iterate_nested_relationship(fruits)
                 self.assertMadeQueries(2)  # one query to load `fruit.number`, one more query to load `fruit.number.fruits`
+
+                # ### Test: chained options
+                reset()
+                fruits = load_fruits(
+                    joinedload(Fruit.number)
+                        .default_columns(Number)
+                        .nplus1loader('*')
+                )
+                self.assertMadeQueries(1)  # made 1 query to load them all
+
+                iterate_nested_relationship(fruits)
+                self.assertMadeQueries(1)  # just 1 query to load fruit.number.fruits
 
         def load_fruits(*options) -> List[Fruit]:
             return ssn.query(Fruit).options(
