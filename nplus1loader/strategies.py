@@ -1,10 +1,11 @@
 """ The implementation of the N+1 Loading strategy """
 from functools import partial
-from typing import Iterable, Mapping
+from typing import Iterable, Mapping, Tuple, Union
 
 from sqlalchemy import log
 from sqlalchemy.engine import ResultProxy
 from sqlalchemy.orm.base import instance_state
+from sqlalchemy.orm.interfaces import StrategizedProperty
 from sqlalchemy.orm.query import QueryContext
 from sqlalchemy.orm.state import InstanceState
 from sqlalchemy.orm import ColumnProperty, RelationshipProperty, Mapper, Session, Query, defaultload
@@ -12,6 +13,7 @@ from sqlalchemy.orm.strategy_options import Load
 from sqlalchemy.orm.strategies import LoaderStrategy
 
 from . import loadopt
+from .util import query_nplus1loader_others
 
 try:
     # In sqlalchemy>=1.3.13, it's something else
@@ -35,6 +37,11 @@ from .bulk_load import bulk_load_attribute_for_instance_states
 @RelationshipProperty.strategy_for(lazy="nplus1")
 class NPlusOneLazyColumnLoader(LoaderStrategy):
     """ Lazy loader for the N+1 situation """
+    def setup_query(self, context: QueryContext, query_entity, path: AbstractEntityRegistry, loadopt: Load, adapter, **kwargs):
+        """ Prepare the Query """
+        others: bool = loadopt.local_opts.get('nplus1:others', False)
+        if others:
+            query_nplus1loader_others(context.query)
 
     def create_row_processor(self, context: QueryContext, path: AbstractEntityRegistry, loadopt: Load, mapper: Mapper,
                              result: ResultProxy, adapter, populators: Mapping[str, list]):

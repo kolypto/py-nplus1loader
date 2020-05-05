@@ -3,9 +3,10 @@ from typing import List
 
 from sqlalchemy import inspect
 from sqlalchemy import exc as sa_exc
-from sqlalchemy.orm import Session, load_only, joinedload
+from sqlalchemy.orm import Session, load_only, joinedload, defer, Query
 from sqlalchemy.orm.state import InstanceState, AttributeState
 
+from nplus1loader.util import query_nplus1loader_others
 from .db import init_database, drop_all, create_all
 from .models import Base, Number, Fruit
 from .query_logger import QueryLogger
@@ -373,6 +374,75 @@ class NPlusOneLoaderPostgresTest(unittest.TestCase):
 
                 iterate_nested_relationship(fruits)
                 self.assertMadeQueries(1)  # just 1 query to load fruit.number.fruits
+
+                # ### Test: nested un-N+1-ed relations
+                reset()
+                fruits = load_fruits(
+                    # Let's assume some library has quietly added this relationship to be loaded
+                    # There's no N+1 loader set on it
+                    joinedload(Fruit.number),
+                    # But there's an N+1 loader at the top
+                    default_columns(Fruit).nplus1loader('*', others=False)
+                )
+                self.assertMadeQueries(1)  # query
+
+                iterate_nested_relationship(fruits)
+                self.assertMadeQueries(3)  # every fruit.number.fruits loaded individually.
+                # In this case, every relationship starting with `joinedload()` has no N+1 loader installed.
+                # Therefore, Fruit.number is loaded, but everything beyond that is lazy-loaded.
+                # In order to defeat this, we'll need to manually alter the loader options that are already on the query
+
+                # ### Test: nested un-N+1-ed relations fixed (no)
+                reset()
+                fruits = load_fruits(
+                    # Let's assume some library has quietly added this relationship to be loaded
+                    # There's no N+1 loader set on it
+                    joinedload(Fruit.number),
+                    # But there's an N+1 loader at the top
+                    nplus1loader('*', others=True),
+                )
+                self.assertMadeQueries(1)  # query
+
+                iterate_nested_relationship(fruits)
+                self.assertMadeQueries(3)  # N+1.... :(
+                # Bad. This test has made 3 queries, but why?
+                # This is because there's nothing deferred on our Query, and SqlAlchemy is being lazy about it:
+                # it does not invoke `NPlusOneLazyColumnLoader.setup_query()`, and so the Query's loading isn't fixed.
+                # Let's try again with a deferred column
+
+                # ### Test: nested un-N+1-ed relations fixed (yes)
+                reset()
+                query = ssn.query(Fruit).options(
+                    # Let's assume some library has quietly added this relationship to be loaded
+                    # There's no N+1 loader set on it
+                    joinedload(Fruit.number),
+                    # But there's an N+1 loader at the top
+                    default_columns(Fruit).nplus1loader('*', others=True)  # others=True
+                )
+
+                # TODO: this is ugly and isn't supposed to be like that.
+                #  Drop this line and find out why `others=True` doesn't get applied.
+                #  Perhaps it somehow has to be postponed until query execution time?
+                # The problem here: setup_query() isn't called when we have no deferred columns
+                # (because SqlAlchemy uses lazy logic with loading options, and it our option doesn't apply to anything,
+                # it's not processed).
+                # But even if it is called, it somehow fails to apply.
+                # Why? No idea. Either because it happens too early, or because those changes get lost somehow.
+                # Need to investigate. Until then, here's an ugly utility function for you ;)
+                query_nplus1loader_others(query)
+
+                # TEMPORARY: test code to pretty-print all the loader options
+                for key, loader in query._attributes.items():
+                    if isinstance(key, tuple):
+                        path = key[1]
+                        print(path, loader.strategy)
+
+                fruits = query.all()
+                self.assertMadeQueries(1)  # query
+
+                iterate_nested_relationship(fruits)
+                self.assertMadeQueries(1)  # GOOD! Just one N+1-loader query
+
 
         def load_fruits(*options) -> List[Fruit]:
             return ssn.query(Fruit).options(

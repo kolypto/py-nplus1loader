@@ -1,5 +1,5 @@
 """ Load options """
-from sqlalchemy.orm import class_mapper
+from sqlalchemy.orm import class_mapper, Load
 from sqlalchemy.orm.strategy_options import loader_option, _UnboundLoad
 
 
@@ -9,7 +9,7 @@ from sqlalchemy.orm.strategy_options import loader_option, _UnboundLoad
 #       Load(Model).default_columns()
 
 @loader_option()
-def default_columns(loadopt: _UnboundLoad, model: type):
+def default_columns(loadopt: Load, model: type):
     """ A loader option to read the default column strategies from a Model.
 
     Usage:
@@ -35,7 +35,7 @@ def default_columns(loadopt: _UnboundLoad, model: type):
 
 
 @loader_option()
-def raiseload_col(loadopt: _UnboundLoad, *attrs):
+def raiseload_col(loadopt: Load, *attrs):
     """ Raise an exception when a column is lazy-loaded
 
     Note that if you use it as a catch-all raiseload_col('*") option, it will also defer the primary key.
@@ -48,7 +48,7 @@ def raiseload_col(loadopt: _UnboundLoad, *attrs):
 
 
 @loader_option()
-def raiseload_rel(loadopt: _UnboundLoad, *attrs):
+def raiseload_rel(loadopt: Load, *attrs):
     """ Raise an exception when a relationship is lazy-loaded """
     for attr in attrs:
         loadopt = loadopt.set_relationship_strategy(
@@ -58,7 +58,7 @@ def raiseload_rel(loadopt: _UnboundLoad, *attrs):
 
 
 @loader_option()
-def raiseload_all(loadopt: _UnboundLoad, *attrs):
+def raiseload_all(loadopt: Load, *attrs):
     """ Raise an exception when a column or a relationship is lazy-loaded
 
     In an ideal world, you'd do something like this:
@@ -77,7 +77,7 @@ def raiseload_all(loadopt: _UnboundLoad, *attrs):
 
 
 @loader_option()
-def nplus1loader_cols(loadopt: _UnboundLoad, *attrs, nested=True):
+def nplus1loader_cols(loadopt: Load, *attrs, nested=True, others=True):
     """ N+1 loader for columns
 
     Give it a list of columns, of '*' to handle them all.
@@ -87,11 +87,13 @@ def nplus1loader_cols(loadopt: _UnboundLoad, *attrs, nested=True):
     )
     if nested:
         loadopt.local_opts['nplus1:nested'] = True
+    if others:
+        loadopt.local_opts['nplus1:others'] = True
     return loadopt
 
 
 @loader_option()
-def nplus1loader_rels(loadopt: _UnboundLoad, *attrs, nested=True):
+def nplus1loader_rels(loadopt: Load, *attrs, nested=True, others=True):
     """ N+1 loader for relationships
 
     Give it a list of relationships, of '*' to handle them all.
@@ -102,11 +104,13 @@ def nplus1loader_rels(loadopt: _UnboundLoad, *attrs, nested=True):
         )
         if nested:
             loadopt.local_opts['nplus1:nested'] = True
+        if others:
+            loadopt.local_opts['nplus1:others'] = True
     return loadopt
 
 
 @loader_option()
-def nplus1loader(loadopt, attrs, nested=True):
+def nplus1loader(loadopt: Load, attrs, nested=True, others=True):
     """ N+1 loader for attributes, be it a column or a relationship
 
     Give it a list of attributes, of '*' to handle them all.
@@ -115,10 +119,11 @@ def nplus1loader(loadopt, attrs, nested=True):
         attrs: Currently, only supports '*'.
           See `nplus1loader_cols()` and `nplus1loader_rels()` for fine-tuning.
         nested: Whether to automatically put the nplus1loader('*') on loaded relationships
+        others: Whether to find all other options and put an nplus1loader('*') on them too
     """
     assert tuple(attrs) == ('*',), 'nplus1loader() only supports "*" yet'
-    loadopt = loadopt.nplus1loader_cols('*', nested=nested)
-    loadopt = loadopt.nplus1loader_rels('*', nested=nested)
+    loadopt = loadopt.nplus1loader_cols('*', nested=nested, others=others)
+    loadopt = loadopt.nplus1loader_rels('*', nested=nested, others=others)
     return loadopt
 
 
@@ -148,18 +153,18 @@ def raiseload_all(*attrs):
 
 
 @nplus1loader_cols._add_unbound_fn
-def nplus1loader_cols(*attrs, nested=True):
-    return _UnboundLoad().nplus1loader_cols(*attrs, nested=nested)
+def nplus1loader_cols(*attrs, nested=True, others=True):
+    return _UnboundLoad().nplus1loader_cols(*attrs, nested=nested, others=others)
 
 
 @nplus1loader_rels._add_unbound_fn
-def nplus1loader_rels(*attrs, nested=True):
-    return _UnboundLoad().nplus1loader_rels(*attrs, nested=nested)
+def nplus1loader_rels(*attrs, nested=True, others=True):
+    return _UnboundLoad().nplus1loader_rels(*attrs, nested=nested, others=others)
 
 
 @nplus1loader._add_unbound_fn
-def nplus1loader(*attrs, nested=True):
-    return _UnboundLoad().nplus1loader(*attrs, nested=nested)
+def nplus1loader(*attrs, nested=True, others=True):
+    return _UnboundLoad().nplus1loader(*attrs, nested=nested, others=others)
 
 
 # The unbound loader options that you're going to import and use
