@@ -285,6 +285,61 @@ class NPlusOneLoaderPostgresTest(unittest.TestCase):
         ssn = self.Session()
         self._run_main(main, ssn)
 
+    def test_lazyload_mapped_collection_relationship(self):
+        """ Test the case where a MappedCollection relationship is going to be lazy loaded """
+        def main(ssn: Session, query_logger: QueryLogger, reset: callable):
+            # ### Test: load a relationship without the solution
+            reset()
+            numbers = load_numbers()
+            with query_logger:
+                # Touch the `.fruits_map` on every Number
+                [number.fruits_map for number in numbers]
+
+                # a query has been made for every number.
+                # That's the N+1 problem.
+                self.assertMadeQueries(len(numbers))
+
+            # ### Test: load a relationship
+            reset()
+            # one, two, three, four = load_numbers()
+            one, two, three, four = load_numbers(
+                default_columns(Number)  # !!!
+                    .nplus1loader('*')
+            )
+            ssn.add(Number())  # stumbling block
+
+            with query_logger, ssn.no_autoflush:
+                # Make sure it's unloaded
+                self.assertUnloaded('fruits_map', one)
+                self.assertUnloaded('fruits_map', two)
+                self.assertUnloaded('fruits_map', three)
+                self.assertUnloaded('fruits_map', four)
+
+                # Trigger a lazyload of `fruits_map`
+                one.fruits_map
+                self.assertMadeQueries(1)  # one query to load them all
+                self.assertLoaded('fruits_map', one)
+                self.assertLoaded('fruits_map', two)
+                self.assertLoaded('fruits_map', three)
+                self.assertLoaded('fruits_map', four)
+
+                # Freely access the `fruits_map` attribute on other objects: no additional queries
+                self.assertIsInstance(one.fruits_map, dict)
+                self.assertIsInstance(two.fruits_map, dict)
+                self.assertIsInstance(three.fruits_map, dict)
+                self.assertIsInstance(four.fruits_map, dict)
+                self.assertEqual(len(one.fruits_map), 2)
+                self.assertEqual(len(two.fruits_map), 2)
+                self.assertEqual(len(three.fruits_map), 2)
+                self.assertEqual(len(four.fruits_map), 0)
+                self.assertMadeQueries(0)  # no additional queries
+
+        def load_numbers(*options) -> List[Number]:
+            return ssn.query(Number).options(*options).order_by(Number.id.asc()).all()
+
+        ssn = self.Session()
+        self._run_main(main, ssn)
+
     def test_lazyload_scalar_relationship(self):
         """ Test the case where a scalar relationship is going to be lazy loaded """
 

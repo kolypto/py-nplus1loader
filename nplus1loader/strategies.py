@@ -5,6 +5,7 @@ from typing import Iterable, Mapping, Tuple, Union
 from sqlalchemy import log
 from sqlalchemy.engine import ResultProxy
 from sqlalchemy.orm.base import instance_state
+from sqlalchemy.orm.collections import MappedCollection
 from sqlalchemy.orm.interfaces import StrategizedProperty
 from sqlalchemy.orm.query import QueryContext
 from sqlalchemy.orm.state import InstanceState
@@ -104,7 +105,18 @@ class NPlusOneLazyColumnLoader(LoaderStrategy):
         # bulk loader has already set it, actually... but the row processor contract requires that we return it.
 
         # This monstrous thing is the right way to get the "committed value" from an sqlalchemy instance :)
-        return state.get_impl(self.key).get_committed_value(state, state.dict)
+        value = state.get_impl(self.key).get_committed_value(state, state.dict)
+
+        # The collection loading code (to which we're returning the value here) always expects a list.
+        # Even if the relationship() is a dict-like mapped collection, it is still loaded from a list.
+        # So here we have to discard keys, and take only values, and feed them back to SQLAlchemy,
+        # that will construct a new MappedCollection that is identical to one that we have here.
+        # This is odd and hacky, but we have to do that, since we're pretending as if the
+        # relationship was never loaded, while in reality it is loaded by the code above.
+        if isinstance(value, MappedCollection):
+            value = value.values()
+
+        return value
 
     def _alter_query__add_nested_nplus1loader(self, query: Query, mapper: Mapper, attr_name: str, is_relationship: bool):
         """ When loading a nested relationship, apply another nplus1loader to it """

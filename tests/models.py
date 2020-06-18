@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from sqlalchemy.orm.collections import attribute_mapped_collection
 
 
 Base = declarative_base()
@@ -17,6 +18,7 @@ class Number(Base):
     no = Column(String(100), nullable=True)
 
     fruits = relationship(lambda: Fruit, back_populates='number')
+    fruits_map = relationship(lambda: Fruit, collection_class=attribute_mapped_collection('en'))
 
 
 class Fruit(Base):
