@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, load_only, joinedload, defer, Query
 from sqlalchemy.orm.state import InstanceState, AttributeState
 
 from nplus1loader.util import query_nplus1loader_others
+from . import const
 from .db import init_database, drop_all, create_all
 from .models import Base, Number, Fruit
 from .query_logger import QueryLogger
@@ -15,7 +16,7 @@ from nplus1loader import nplus1loader, default_columns, raiseload_all, LazyLoadi
 
 
 class NPlusOneLoaderPostgresTest(unittest.TestCase):
-    DB_URL = 'postgresql://postgres:postgres@localhost/test_nplus1loader'
+    DB_URL = const.POSTGRES_URL
 
     def setUp(self):
         super().setUp()
@@ -577,10 +578,9 @@ class NPlusOneLoaderPostgresTest(unittest.TestCase):
 
 class NplusOneLoaderMySQLTest(NPlusOneLoaderPostgresTest):
     """ Test nplus1loader() with MySQL """
-    DB_URL = 'mysql+pymysql://mysql:mysql@localhost/test_nplus1loader'
+    DB_URL = const.MYSQL_URL
 
 
 class NplusOneLoaderSQLiteTest(NPlusOneLoaderPostgresTest):
     """ Test nplus1loader() with SQLite """
     DB_URL = 'sqlite://'
-

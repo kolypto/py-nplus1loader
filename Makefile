@@ -22,8 +22,8 @@ publish: README.md
 test:
 	@# Before testing, run: $ docker-compose up -d
 	@nosetests tests/
-test-tox:
-	@tox
+test-nox:
+	@nox -db venv
 test-profile:
 	@nosetests --with-cprofile --cprofile-stats-file=profile.out tests/
 	@gprof2dot -f pstats profile.out | dot -Tpng -o profile.png

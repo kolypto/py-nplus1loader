@@ -1,0 +1,40 @@
+name: Tests
+on: [push, pull_request, release]
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    #container:
+
+    strategy:
+      matrix:
+        python-version: ['3.x']#, 'pypy3']
+
+    name: Test with python ${{ matrix.python-version }}
+    steps:
+    - uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - uses: actions/checkout@v2
+    - run: pip install nox
+    - run: nox
+
+
+    # Services (copied from docker-compose.yml)
+    services:
+      postgres:
+        image: postgres
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_nplus1loader
+      mysql:
+        image: mysql:8
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_USER: 'mysql'
+          MYSQL_PASSWORD: 'mysql'
+          MYSQL_ROOT_PASSWORD: 'mysql'
+          MYSQL_DATABASE: 'test_nplus1loader'
