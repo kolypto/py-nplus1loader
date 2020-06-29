@@ -15,8 +15,14 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: ./.nox/  # what we cache
+        key: ${{ runner.os }}-nox-1-${{ hashFiles('**/requirements*.txt') }}  # cache key
+        restore-keys: |
+          ${{ runner.os }}-nox-1-
     - run: pip install nox
-    - run: nox
+    - run: nox -r
 
 
     # Services (copied from docker-compose.yml)
