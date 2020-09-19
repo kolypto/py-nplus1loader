@@ -22,7 +22,7 @@ def tests(session: nox.sessions.Session, sqlalchemy=None):
     [
         '1.2.19',
         *(f'1.3.{x}'
-          for x in range(0, 1+17)),
+          for x in range(0, 1+19)),
     ]
 )
 def tests_sqlalchemy(session: nox.sessions.Session, sqlalchemy):
