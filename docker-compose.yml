@@ -2,7 +2,7 @@ version: '3'
 
 services:
   py-nplus1loader-postgres-test:
-    image: postgres:9
+    image: postgres:latest
     restart: always
     ports:
       - '127.0.0.1:5432:5432'
@@ -12,7 +12,7 @@ services:
       POSTGRES_DB: test_nplus1loader
 
   py-nplus1loader-mysql-test:
-    image: mysql:8
+    image: mysql:latest
     restart: always
     ports:
       - '127.0.0.1:3306:3306'

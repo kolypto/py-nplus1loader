@@ -4,8 +4,7 @@ import nox.sessions
 PYTHON_VERSIONS = ['3.6', '3.7', '3.8', '3.9']
 SQLALCHEMY_VERIONS = [
     '1.2.19',
-    *(f'1.3.{x}'
-      for x in range(0, 1 + 20)),
+    *(f'1.3.{x}' for x in range(0, 1 + 20)),
 ]
 
 
@@ -22,7 +21,7 @@ def tests(session: nox.sessions.Session, sqlalchemy=None):
     if sqlalchemy:
         session.install(f'sqlalchemy=={sqlalchemy}')
 
-    session.run('pytest', 'tests/')
+    session.run('pytest', 'tests/', '--cov=myproject')
 
 
 @nox.session(python='3.8')

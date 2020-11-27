@@ -1,5 +1,18 @@
-name: Tests
-on: [push, pull_request, release]
+name: Test
+on:
+  # https://help.github.com/en/actions/reference/events-that-trigger-workflows
+  pull_request:
+    types: [ opened, edited, reopened ]
+  release:
+    types: [ prereleased, released ]
+  push:
+    branches: [ master, development ]
+  # Trigger this workflow manually from the `actions` page
+  workflow_dispatch:
+    inputs:
+      git-ref:
+        description: Git Commit or Branch (Optional)
+        required: false
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -7,9 +20,9 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ['3.x']#, 'pypy3']
+        python-version: ['3.x']
 
-    name: Test with python ${{ matrix.python-version }}
+    name: ${{ github.ref }}, Python ${{ matrix.python-version }}
     steps:
     - uses: actions/setup-python@v2
       with:
@@ -17,12 +30,12 @@ jobs:
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
       with:
-        path: ./.nox/  # what we cache
-        key: ${{ runner.os }}-nox-1-${{ hashFiles('**/requirements*.txt') }}  # cache key
+        path: ./.nox/  # what we cache: nox virtualenv (they're expensive)
+        key: ${{ runner.os }}-nox-2-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml', '**/noxfile.py') }}  # cache key
         restore-keys: |
-          ${{ runner.os }}-nox-1-
+          ${{ runner.os }}-nox-2-${{ matrix.python-version }}-
     - run: pip install nox
-    - run: nox -r
+    - run: nox --report nox-report.json
 
 
     # Services (copied from docker-compose.yml)
