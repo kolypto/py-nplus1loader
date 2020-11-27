@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 def init_database(url: str, autoflush=True) -> Tuple[Engine, sessionmaker]:
     """ Init database """
-    engine = create_engine(url, convert_unicode=True, echo=False)
+    engine = create_engine(url, echo=False)
     Session = sessionmaker(autocommit=autoflush, autoflush=autoflush, bind=engine)
     return engine, Session
 

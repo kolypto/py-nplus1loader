@@ -89,7 +89,7 @@ class NPlusOneLazyColumnLoader(LoaderStrategy):
         # Log
         if self._should_log_info:
             states = list(states)
-            self.logger.warn(
+            self.logger.warning(
                 "%s.%s: N+1 loading of %s instances",
                 mapper.class_.__name__,
                 self.key,

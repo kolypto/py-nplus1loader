@@ -17,7 +17,7 @@ services:
     ports:
       - '127.0.0.1:3306:3306'
     environment:
-      MYSQL_USER: 'mysql'
-      MYSQL_PASSWORD: 'mysql'
-      MYSQL_ROOT_PASSWORD: 'mysql'
-      MYSQL_DATABASE: 'test_nplus1loader'
+      MYSQL_USER: mysql
+      MYSQL_PASSWORD: mysql
+      MYSQL_ROOT_PASSWORD: mysql
+      MYSQL_DATABASE: test_nplus1loader
