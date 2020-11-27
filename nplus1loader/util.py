@@ -1,6 +1,9 @@
-from typing import Tuple, Union
+from typing import Tuple, Union, Iterable
+
+from sqlalchemy.orm.base import instance_state
 from sqlalchemy.orm.interfaces import StrategizedProperty
-from sqlalchemy.orm import RelationshipProperty, Query
+from sqlalchemy.orm import RelationshipProperty, Query, Session, Mapper
+from sqlalchemy.orm.state import InstanceState
 from sqlalchemy.orm.strategy_options import Load
 
 
@@ -47,3 +50,16 @@ def query_nplus1loader_others(query: Query) -> Query:
                 # Put a default_columns().npus1loader() onto it
                 loader.default_columns(target_col.mapper.class_).nplus1loader('*')
     return query
+
+
+def session_instances_with_unloaded_attribute(session: Session, model: type, attr_name: str) -> Iterable[InstanceState]:
+    """ Iterate over instances in the `session` which have `attr_name` unloaded """
+    for instance in session:
+        if isinstance(instance, model):
+            state: InstanceState = instance_state(instance)
+
+            # Only return instances that:
+            # 1. Are persistent in the DB (have a PK)
+            # 2. Have this attribute unloaded
+            if state.persistent and attr_name in state.unloaded:
+                yield state

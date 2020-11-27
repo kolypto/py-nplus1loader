@@ -4,12 +4,11 @@ from typing import Tuple, Iterable, Callable, Optional
 
 from funcy import chunks
 from sqlalchemy import Column, tuple_
+from sqlalchemy.orm import Mapper, Session, Query, defaultload, joinedload
 from sqlalchemy.orm.attributes import set_committed_value
+from sqlalchemy.orm.state import InstanceState
 from sqlalchemy.orm.util import identity_key
 from sqlalchemy.sql.elements import BinaryExpression
-from sqlalchemy.orm.state import InstanceState
-from sqlalchemy.orm import Mapper, Session, Query, defaultload, joinedload
-
 
 # Signature of a function that may alter the Query
 # (query: Query, mapper: Mapper, attr_name: str, is_relationship: bool)

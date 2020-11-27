@@ -1,20 +1,15 @@
 """ The implementation of the N+1 Loading strategy """
 from functools import partial
-from typing import Iterable, Mapping, Tuple, Union
+from typing import Mapping
 
 from sqlalchemy import log
 from sqlalchemy.engine import ResultProxy
-from sqlalchemy.orm.base import instance_state
+from sqlalchemy.orm import ColumnProperty, RelationshipProperty, Mapper, Query, defaultload
 from sqlalchemy.orm.collections import MappedCollection
-from sqlalchemy.orm.interfaces import StrategizedProperty
 from sqlalchemy.orm.query import QueryContext
 from sqlalchemy.orm.state import InstanceState
-from sqlalchemy.orm import ColumnProperty, RelationshipProperty, Mapper, Session, Query, defaultload
-from sqlalchemy.orm.strategy_options import Load
 from sqlalchemy.orm.strategies import LoaderStrategy
-
-from . import loadopt
-from .util import query_nplus1loader_others
+from sqlalchemy.orm.strategy_options import Load
 
 try:
     # In sqlalchemy>=1.3.13, it's something else
@@ -24,6 +19,7 @@ except ImportError:
     from sqlalchemy.orm.path_registry import EntityRegistry as AbstractEntityRegistry
 
 from .exc import LazyLoadingAttributeError
+from .util import query_nplus1loader_others, session_instances_with_unloaded_attribute
 from .bulk_load import bulk_load_attribute_for_instance_states
 
 
@@ -84,7 +80,7 @@ class NPlusOneLazyColumnLoader(LoaderStrategy):
         # Okay, somebody is attempting to lazy-load an attribute on our watch.
         # First, go through the Session and pick other instances where the very same attribute is unloaded
         # We're going to lazy-load all of them
-        states = self._get_instance_states_with_unloaded(session, mapper, self.key)
+        states = session_instances_with_unloaded_attribute(session, mapper.class_, self.key)
 
         # Log
         if self._should_log_info:
@@ -134,18 +130,6 @@ class NPlusOneLazyColumnLoader(LoaderStrategy):
         # No special options for columns
         else:
             return query
-
-    @staticmethod
-    def _get_instance_states_with_unloaded(session: Session, mapper: Mapper, attr_name: str) -> Iterable[InstanceState]:
-        """ Iterate over instances in the `session` which have `attr_name` unloaded """
-        for instance in session:
-            if isinstance(instance, mapper.class_):
-                state: InstanceState = instance_state(instance)
-                # Only return instances that:
-                # 1. Are persistent in the DB (have a PK)
-                # 2. Have this attribute unloaded
-                if state.persistent and attr_name in state.unloaded:
-                    yield state
 
 
 # Raise loader

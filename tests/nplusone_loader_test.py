@@ -2,17 +2,15 @@ import unittest
 from typing import List
 
 from sqlalchemy import inspect
-from sqlalchemy import exc as sa_exc
-from sqlalchemy.orm import Session, load_only, joinedload, defer, Query
+from sqlalchemy.orm import Session, load_only, joinedload
 from sqlalchemy.orm.state import InstanceState, AttributeState
 
+from nplus1loader import nplus1loader, default_columns, raiseload_all, LazyLoadingAttributeError
 from nplus1loader.util import query_nplus1loader_others
 from . import const
 from .db import init_database, drop_all, create_all
 from .models import Base, Number, Fruit
 from .query_logger import QueryLogger
-
-from nplus1loader import nplus1loader, default_columns, raiseload_all, LazyLoadingAttributeError
 
 
 class NPlusOneLoaderPostgresTest(unittest.TestCase):

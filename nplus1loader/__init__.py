@@ -291,6 +291,9 @@ from .loadopt import default_columns
 from .loadopt import raiseload_col, raiseload_rel, raiseload_all
 from .loadopt import nplus1loader, nplus1loader_cols, nplus1loader_rels
 
+# Session-wide catch-all N+1 loader
+from .safeguard import safeguard_session
+
 # Exceptions
 from .exc import LazyLoadingAttributeError
 
