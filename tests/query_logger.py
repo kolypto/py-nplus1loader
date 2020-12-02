@@ -11,7 +11,9 @@ def format_sql_statement(cursor, statement, parameters):
     """ Format an SqlAlchemy statement into a valid SQL string """
     if isinstance(parameters, dict):
         # This line produces correct but ugly SQL
-        sql = cursor.mogrify(statement, parameters)#.decode()
+        sql = cursor.mogrify(statement, parameters)
+        if isinstance(sql, bytes):
+            sql = sql.decode()
 
         # Nicely format SQL (takes a lot of CPU)
         if sqlparse is not None:
@@ -51,6 +53,11 @@ class QueryLogger(list):
         for i, q in enumerate(self):
             print('=' * 5, ' Query #{}'.format(i))
             print(q)
+
+    @property
+    def queries(self) -> int:
+        """ Get the number of logged """
+        return len(self)
 
     # Context manager
 

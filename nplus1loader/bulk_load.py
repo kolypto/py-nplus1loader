@@ -4,7 +4,8 @@ from typing import Tuple, Iterable, Callable, Optional
 
 from funcy import chunks
 from sqlalchemy import Column, tuple_
-from sqlalchemy.orm import Mapper, Session, Query, defaultload, joinedload
+from sqlalchemy.orm import Mapper, Session, Query
+from sqlalchemy.orm import defaultload, joinedload
 from sqlalchemy.orm.attributes import set_committed_value
 from sqlalchemy.orm.state import InstanceState
 from sqlalchemy.orm.util import identity_key
@@ -114,7 +115,7 @@ def _bulk_load_relationship_for_instance_states(session: Session, mapper: Mapper
     # Magic.
     q = session.query(Model).options(
         defaultload(Model).load_only(*pk_column_names),
-        joinedload(relationship)
+        joinedload(relationship),
     ).filter(
         build_primary_key_condition(pk_columns, identities)
     )
@@ -123,7 +124,7 @@ def _bulk_load_relationship_for_instance_states(session: Session, mapper: Mapper
     if alter_query:
         q = alter_query(q, mapper, attr_name, True)
 
-    # Finally, exeucte the query
+    # Finally, execute the query
     q.all()
 
 

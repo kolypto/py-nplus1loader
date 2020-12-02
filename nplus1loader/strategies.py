@@ -47,7 +47,7 @@ class NPlusOneLazyColumnLoader(LoaderStrategy):
         # that handle the loading of deferred attributes.
         #
         # Our attribute name is `self.key`, which is the name of the model attribute,
-        # and our callable is `self._nplusone_lazy_loading` method.
+        # and our callable is `self._nplus1_lazy_loading` method.
         # It's going to be called when the attribute is deferred, and touched by some-unsuspecting-body
 
         # Get our loader option keyword arguments
